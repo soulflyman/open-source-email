@@ -1882,11 +1882,16 @@ public class ServiceSynchronize extends LifecycleService {
                 long uid = append(istore, itarget, (MimeMessage) icopy);
                 Log.i(target.name + " appended id=" + message.id + " uid=" + uid);
 
+                // Close and open target folder to get a refreshed uid list,
+                // so that getMessageByUID will not return null even if the UID exists on the server
+                itarget.close(false);
+                itarget.open(Folder.READ_WRITE);
+
                 // Some providers, like Gmail, don't honor the appended seen flag
                 if (itarget.getPermanentFlags().contains(Flags.Flag.SEEN)) {
                     boolean seen = (autoread || message.ui_seen);
                     icopy = itarget.getMessageByUID(uid);
-                    if (seen != icopy.isSet(Flags.Flag.SEEN)) {
+                    if (icopy != null && seen != icopy.isSet(Flags.Flag.SEEN)) {
                         Log.i(target.name + " Fixing id=" + message.id + " seen=" + seen);
                         icopy.setFlag(Flags.Flag.SEEN, seen);
                     }
@@ -1896,7 +1901,7 @@ public class ServiceSynchronize extends LifecycleService {
                 if (itarget.getPermanentFlags().contains(Flags.Flag.DRAFT)) {
                     boolean draft = EntityFolder.DRAFTS.equals(target.type);
                     icopy = itarget.getMessageByUID(uid);
-                    if (draft != icopy.isSet(Flags.Flag.DRAFT)) {
+                    if (icopy != null && draft != icopy.isSet(Flags.Flag.DRAFT)) {
                         Log.i(target.name + " Fixing id=" + message.id + " draft=" + draft);
                         icopy.setFlag(Flags.Flag.DRAFT, draft);
                     }
